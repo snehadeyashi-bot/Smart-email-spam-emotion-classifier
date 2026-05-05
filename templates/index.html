@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Email Intelligence Dashboard</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="bg-orb-1"></div>
+    <div class="bg-orb-2"></div>
+
+    <div class="dashboard-container {% if not result %}single-column{% endif %}">
+
+        <!-- Left Panel: Input -->
+        <div class="input-section">
+            <div class="hey-badge">
+                <div class="icon-wrapper"><i class="ph-fill ph-sparkle"></i></div>
+                <span>Hey</span>
+            </div>
+
+            <h1 class="main-heading">
+                Want to check the message is <span class="gradient-text">spam or not?</span>
+            </h1>
+
+            <div class="input-container">
+                <div class="input-container-inner">
+                    <div class="input-header">
+                        <div class="header-icon"><i class="ph ph-envelope-simple"></i></div>
+                        <span>paste the email here ...</span>
+                    </div>
+
+                    <form method="POST" action="/" class="input-form-wrapper">
+                        <textarea name="email_text"
+                            placeholder="paste text here..........">{{ email_text or '' }}</textarea>
+
+                        <button type="submit" class="btn-submit">
+                            Analyse
+                            <div class="btn-icon"><i class="ph ph-arrow-right"></i></div>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {% if error %}
+            <div style="margin-top: 20px; color: var(--danger); font-size: 16px; display: flex; align-items: center; gap: 10px; background: rgba(244, 63, 94, 0.1); padding: 16px 24px; border-radius: 16px; border: 1px solid rgba(244, 63, 94, 0.2); font-weight: 500;"
+                class="animate-fade">
+                <i class="ph-fill ph-warning-circle" style="font-size: 24px;"></i> {{ error }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Panel: Results (Only visible if result exists) -->
+        {% if result %}
+        <div class="results-panel animate-fade">
+            <div class="results-wrapper">
+
+                <!-- Top Metrics: Classification & Confidence -->
+                <div class="metrics-grid">
+                    <div class="metric-card animate-fade delay-1">
+                        {% if result == 'Spam' %}
+                        <div class="bg-glow-danger"></div>
+                        <div class="metric-title"><i class="ph-fill ph-shield-warning"></i> Threat Level</div>
+                        <div class="metric-value status-spam">
+                            SPAM
+                        </div>
+                        {% else %}
+                        <div class="bg-glow-success"></div>
+                        <div class="metric-title"><i class="ph-fill ph-shield-check"></i> Security Status</div>
+                        <div class="metric-value status-safe">
+                            SECURE
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="metric-card animate-fade delay-2">
+                        <div class="metric-title"><i class="ph-fill ph-chart-bar"></i> AI Confidence</div>
+                        <div style="display: flex; align-items: center; gap: 15px; margin-top: 5px;">
+                            <div class="metric-value" style="min-width: 65px;">
+                                {{ confidence }}%
+                            </div>
+                            <div class="progress-track" style="margin-top: 0; flex-grow: 1;">
+                                <div class="progress-fill fill-primary" style="--target-width: {{ confidence }}%;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Score -->
+                <div class="metrics-grid">
+                    <div class="metric-card animate-fade delay-3">
+                        <div class="metric-title"><i class="ph-fill ph-warning-octagon"></i> Content Risk Score</div>
+                        <div style="display: flex; align-items: center; gap: 15px; margin-top: 5px;">
+                            <div class="metric-value" style="min-width: 90px;">
+                                {{ risk_score }}/100
+                            </div>
+                            <div class="progress-track" style="margin-top: 0; flex-grow: 1;">
+                                {% if risk_score > 75 %}
+                                <div class="progress-fill fill-danger" style="--target-width: {{ risk_score }}%;"></div>
+                                {% elif risk_score > 40 %}
+                                <div class="progress-fill fill-warning" style="--target-width: {{ risk_score }}%;">
+                                </div>
+                                {% else %}
+                                <div class="progress-fill fill-success" style="--target-width: {{ risk_score }}%;">
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recommendation-banner animate-fade delay-4"
+                    style="border-left-color: {% if result == 'Spam' %}var(--danger){% elif analysis and analysis.primary_emotion == 'Urgent' %}var(--warning){% else %}var(--primary){% endif %}">
+                    <i class="ph-fill {% if result == 'Spam' %}ph-warning-circle{% else %}ph-info{% endif %}"></i>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 6px; color: var(--text-main); font-size: 16px;">
+                            Action Recommendation</div>
+                        <div style="color: var(--text-muted); font-size: 15px; line-height: 1.5;">{{ recommendation }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emotion Analytics (Only for Non-Spam) -->
+                {% if result == 'Not Spam' and analysis %}
+                <div class="animate-fade delay-4">
+                    <h3 class="section-title" style="margin-top: 15px;"><i class="ph-fill ph-brain"></i> Emotional
+                        Intelligence Insights</h3>
+
+                    <div class="emotion-card">
+
+                        <!-- Primary Emotion -->
+                        <div class="metric-title" style="margin-bottom: 12px;"><i class="ph-fill ph-target"></i> Primary
+                            Detected Tone</div>
+                        <div class="primary-emotion-badge emo-{{ analysis.primary_emotion }}">
+                            {% if analysis.primary_emotion == 'Urgent' %}<i class="ph-fill ph-siren"></i> Urgent
+                            {% elif analysis.primary_emotion == 'Angry' %}<i class="ph-fill ph-fire"></i> Angry
+                            {% elif analysis.primary_emotion == 'Happy' %}<i class="ph-fill ph-smiley"></i> Positive
+                            {% elif analysis.primary_emotion == 'Professional' %}<i class="ph-fill ph-briefcase"></i>
+                            Professional
+                            {% else %}<i class="ph-fill ph-mask-happy"></i> Neutral
+                            {% endif %}
+                        </div>
+
+                        <!-- Tone Breakdown Chart -->
+                        <div class="breakdown-container">
+                            <div class="metric-title"><i class="ph-fill ph-chart-line-up"></i> Tone Breakdown Matrix
+                            </div>
+                            <div class="breakdown-bar">
+                                <div class="segment seg-urgent" style="--target-width: {{ analysis.breakdown.Urgent }}%"
+                                    title="Urgent: {{ analysis.breakdown.Urgent }}%"></div>
+                                <div class="segment seg-angry" style="--target-width: {{ analysis.breakdown.Angry }}%"
+                                    title="Angry: {{ analysis.breakdown.Angry }}%"></div>
+                                <div class="segment seg-prof"
+                                    style="--target-width: {{ analysis.breakdown.Professional }}%"
+                                    title="Professional: {{ analysis.breakdown.Professional }}%"></div>
+                                <div class="segment seg-happy" style="--target-width: {{ analysis.breakdown.Happy }}%"
+                                    title="Happy: {{ analysis.breakdown.Happy }}%"></div>
+                                <div class="segment seg-neutral"
+                                    style="--target-width: {{ analysis.breakdown.Neutral }}%"
+                                    title="Neutral: {{ analysis.breakdown.Neutral }}%"></div>
+                            </div>
+
+                            <div class="breakdown-legend">
+                                {% if analysis.breakdown.Urgent > 0 %}<div class="legend-item">
+                                    <div class="legend-dot seg-urgent"></div> <i class="ph-fill ph-siren"
+                                        style="color: var(--warning)"></i> Urgent {{ analysis.breakdown.Urgent }}%
+                                </div>{% endif %}
+                                {% if analysis.breakdown.Angry > 0 %}<div class="legend-item">
+                                    <div class="legend-dot seg-angry"></div> <i class="ph-fill ph-fire"
+                                        style="color: var(--danger)"></i> Angry {{ analysis.breakdown.Angry }}%
+                                </div>{% endif %}
+                                {% if analysis.breakdown.Professional > 0 %}<div class="legend-item">
+                                    <div class="legend-dot seg-prof"></div> <i class="ph-fill ph-briefcase"
+                                        style="color: var(--info)"></i> Professional {{ analysis.breakdown.Professional
+                                    }}%
+                                </div>{% endif %}
+                                {% if analysis.breakdown.Happy > 0 %}<div class="legend-item">
+                                    <div class="legend-dot seg-happy"></div> <i class="ph-fill ph-smiley"
+                                        style="color: var(--success)"></i> Happy {{ analysis.breakdown.Happy }}%
+                                </div>{% endif %}
+                                {% if analysis.breakdown.Neutral > 0 %}<div class="legend-item">
+                                    <div class="legend-dot seg-neutral"></div> <i class="ph-fill ph-mask-happy"
+                                        style="color: #94a3b8"></i> Neutral {{ analysis.breakdown.Neutral }}%
+                                </div>{% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Additional NLP Metrics -->
+                        <div style="margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <div class="metric-title"><i class="ph-fill ph-scales"></i> Sentiment Polarity</div>
+                                <div style="display: flex; align-items: center; gap: 15px; margin-top: 5px;">
+                                    <div
+                                        style="font-weight: 700; font-size: 20px; min-width: 50px; flex-shrink: 0; white-space: nowrap; color: {% if analysis.polarity > 0 %}var(--success){% elif analysis.polarity < 0 %}var(--danger){% else %}var(--text-main){% endif %}">
+                                        {{ analysis.polarity }}
+                                    </div>
+                                    <div
+                                        style="flex-grow: 1; height: 8px; background: rgba(0,0,0,0.05); border-radius: 10px; position: relative; overflow: hidden;">
+                                        <div
+                                            style="position: absolute; left: 50%; width: 2px; height: 100%; background: rgba(0,0,0,0.15); z-index: 2;">
+                                        </div>
+                                        {% if analysis.polarity > 0 %}
+                                        <div class="progress-fill fill-success"
+                                            style="position: absolute; left: 50%; --target-width: {{ analysis.polarity * 50 }}%;">
+                                        </div>
+                                        {% elif analysis.polarity < 0 %} <div class="progress-fill fill-danger"
+                                            style="position: absolute; right: 50%; transform-origin: right; --target-width: {{ (analysis.polarity * -1) * 50 }}%;">
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="metric-title"><i class="ph-fill ph-clock-countdown"></i> Urgency Meter</div>
+                            <div style="display: flex; align-items: center; gap: 15px; margin-top: 5px;">
+                                <div
+                                    style="font-weight: 700; font-size: 20px; min-width: 70px; flex-shrink: 0; white-space: nowrap; color: var(--text-main);">
+                                    {{ analysis.urgency_score }}/100
+                                </div>
+                                <div
+                                    style="flex-grow: 1; height: 8px; background: rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden;">
+                                    <div class="progress-fill {% if analysis.urgency_score > 70 %}fill-danger{% elif analysis.urgency_score > 40 %}fill-warning{% else %}fill-primary{% endif %}"
+                                        style="--target-width: {{ analysis.urgency_score }}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+    {% endif %}
+
+    </div>
+
+</body>
+
+</html>
